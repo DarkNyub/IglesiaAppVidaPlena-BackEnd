@@ -1,0 +1,96 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|d:\\downloads\\vidaplenaproyect\\backend\\iglesiabackend\\features\\members\\memberservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|solutionrelative:features\\members\\memberservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|d:\\downloads\\vidaplenaproyect\\backend\\iglesiabackend\\features\\members\\memberdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|solutionrelative:features\\members\\memberdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|d:\\downloads\\vidaplenaproyect\\backend\\iglesiabackend\\features\\members\\memberrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|solutionrelative:features\\members\\memberrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|d:\\downloads\\vidaplenaproyect\\backend\\iglesiabackend\\features\\members\\memberscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{170AE36D-16C4-4298-6CFA-3B39697C3E59}|IglesiaBackend.csproj|solutionrelative:features\\members\\memberscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MemberService.cs",
+              "DocumentMoniker": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberService.cs",
+              "RelativeDocumentMoniker": "Features\\Members\\MemberService.cs",
+              "ToolTip": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberService.cs",
+              "RelativeToolTip": "Features\\Members\\MemberService.cs",
+              "ViewState": "AgIAAHoAAAAAAAAAAAAUwIIAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-14T20:18:42.844Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MemberRepository.cs",
+              "DocumentMoniker": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberRepository.cs",
+              "RelativeDocumentMoniker": "Features\\Members\\MemberRepository.cs",
+              "ToolTip": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberRepository.cs",
+              "RelativeToolTip": "Features\\Members\\MemberRepository.cs",
+              "ViewState": "AgIAAG0AAAAAAAAAAAAcwJ0AAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-14T20:18:16.477Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MemberDto.cs",
+              "DocumentMoniker": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberDto.cs",
+              "RelativeDocumentMoniker": "Features\\Members\\MemberDto.cs",
+              "ToolTip": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MemberDto.cs",
+              "RelativeToolTip": "Features\\Members\\MemberDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-14T18:07:27.825Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MembersController.cs",
+              "DocumentMoniker": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MembersController.cs",
+              "RelativeDocumentMoniker": "Features\\Members\\MembersController.cs",
+              "ToolTip": "D:\\Downloads\\vidaPlenaProyect\\backend\\IglesiaBackend\\Features\\Members\\MembersController.cs",
+              "RelativeToolTip": "Features\\Members\\MembersController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-14T18:06:01.693Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

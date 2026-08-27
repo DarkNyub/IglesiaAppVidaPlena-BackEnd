@@ -1,0 +1,6 @@
+@IglesiaBackend_HostAddress = http://localhost:5009
+
+GET {{IglesiaBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
