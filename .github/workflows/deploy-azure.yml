@@ -1,0 +1,44 @@
+name: Desplegar Backend en Azure
+
+# El flujo se ejecuta cada vez que haces un 'git push' a la rama main
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AZURE_WEBAPP_NAME: iglesia-api-VidaPlena    # El nombre exacto de tu App Service
+  DOTNET_VERSION: '9.0.x'                     # Cambia al 6.0.x o 7.0.x si usas una versión anterior
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código de GitHub al servidor de compilación
+      - name: Descargar código fuente
+        uses: actions/checkout@v3
+
+      # 2. Prepara el entorno de .NET
+      - name: Configurar entorno .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # 3. Restaura, compila y prepara los binarios para producción
+      - name: Restaurar dependencias (dotnet restore)
+        run: dotnet restore
+
+      - name: Compilar proyecto (dotnet build)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publicar binarios (dotnet publish)
+        run: dotnet publish --configuration Release --no-build --output ./publish_output
+
+      # 4. Sube los binarios listos a tu servidor en Azure usando el Secreto
+      - name: Desplegar a Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish_output

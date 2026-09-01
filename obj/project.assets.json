@@ -6158,11 +6158,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/mnt/01D78A42E1FC1E30/Downloads/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
+      "projectUniqueName": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
       "projectName": "IglesiaBackend",
-      "projectPath": "/mnt/01D78A42E1FC1E30/Downloads/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
+      "projectPath": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
       "packagesPath": "/home/pc/.nuget/packages/",
-      "outputPath": "/mnt/01D78A42E1FC1E30/Downloads/vidaPlenaProyect/backend/IglesiaBackend/obj/",
+      "outputPath": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/pc/.nuget/NuGet/NuGet.Config"
