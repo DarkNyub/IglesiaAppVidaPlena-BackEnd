@@ -81,4 +81,18 @@ public class OrganizationStructuresController : ControllerBase
         if (!success) return NotFound();
         return NoContent();
     }
+    [HttpPost("{id:int}/clone")]
+    public async Task<IActionResult> Clone(int id, [FromBody] CloneOrganizationStructureDto dto)
+    {
+        try
+        {
+            var success = await _service.CloneDeepAsync(id, dto);
+            if (!success) return NotFound(new { message = "Estructura original no encontrada." });
+            return NoContent(); // 204: Éxito, sin contenido extra
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

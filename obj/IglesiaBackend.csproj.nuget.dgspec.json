@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj": {}
+    "/home/pc/development/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj": {}
   },
   "projects": {
-    "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj": {
+    "/home/pc/development/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
+        "projectUniqueName": "/home/pc/development/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
         "projectName": "IglesiaBackend",
-        "projectPath": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
+        "projectPath": "/home/pc/development/vidaPlenaProyect/backend/IglesiaBackend/IglesiaBackend.csproj",
         "packagesPath": "/home/pc/.nuget/packages/",
-        "outputPath": "/mnt/01D78A42E1FC1E30/Documents/vidaPlenaProyect/backend/IglesiaBackend/obj/",
+        "outputPath": "/home/pc/development/vidaPlenaProyect/backend/IglesiaBackend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/pc/.nuget/NuGet/NuGet.Config"
@@ -47,7 +47,7 @@
           "dependencies": {
             "AutoMapper": {
               "target": "Package",
-              "version": "[15.1.0, )"
+              "version": "[16.2.0, )"
             },
             "EFCore.BulkExtensions": {
               "target": "Package",

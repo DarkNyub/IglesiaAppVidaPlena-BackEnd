@@ -31,3 +31,9 @@ public class OrganizationStructureCreateUpdateDto
     // 🔥 VITAL: Para el Soft Delete visual
     //public bool IsDeleted { get; set; } = false;
 }
+
+public class CloneOrganizationStructureDto
+{
+    public string NewName { get; set; } = string.Empty;
+    public string? NewDescription { get; set; }
+}

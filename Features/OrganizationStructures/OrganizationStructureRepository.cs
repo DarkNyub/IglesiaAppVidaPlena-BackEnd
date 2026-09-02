@@ -90,4 +90,30 @@ public class OrganizationStructureRepository
             .Include(mr => mr.Member)
             .AnyAsync(mr => mr.OrganizationStructureId == id && !mr.Member.IsDeleted);
     }
+    // Nuevo método para cargar el árbol completo de una estructura (útil para clonar)
+    public async Task<OrganizationStructure?> GetTreeByIdAsync(int id)
+    {
+        // Traemos todo en memoria (sin tracking para que EF no se confunda al insertar copias)
+        var allActiveNodes = await _context.OrganizationStructures
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .ToListAsync();
+
+        // Buscamos la raíz solicitada
+        var root = allActiveNodes.FirstOrDefault(x => x.Id == id);
+        if (root == null) return null;
+
+        // Construimos el árbol en memoria asignando los hijos
+        void BuildTree(OrganizationStructure node)
+        {
+            node.Children = allActiveNodes.Where(x => x.ParentId == node.Id).ToList();
+            foreach (var child in node.Children)
+            {
+                BuildTree(child);
+            }
+        }
+
+        BuildTree(root);
+        return root;
+    }
 }

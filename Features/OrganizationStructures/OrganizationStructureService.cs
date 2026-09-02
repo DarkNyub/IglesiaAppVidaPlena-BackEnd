@@ -87,4 +87,40 @@ public class OrganizationStructureService
         await _repository.UpdateSimpleAsync(entity);
         return true;
     }
+
+    public async Task<bool> CloneDeepAsync(int id, CloneOrganizationStructureDto cloneDto)
+    {
+        var originalRoot = await _repository.GetTreeByIdAsync(id);
+        if (originalRoot == null) return false;
+
+        // Método recursivo local para duplicar nodos
+        async Task CloneNodeRecursive(OrganizationStructure originalNode, int? newParentId, string? overrideName = null, string? overrideDescription = null)
+        {
+            // Creamos la copia
+            var newNode = new OrganizationStructure
+            {
+                Name = overrideName ?? originalNode.Name, // Usamos el nombre nuevo solo para la raíz
+                Description = overrideDescription ?? originalNode.Description,
+                OrganizationTypeId = originalNode.OrganizationTypeId,
+                ParentId = newParentId,
+                // Reiniciamos campos de auditoría automáticamente por EF Core
+            };
+
+            // Guardamos el nuevo nodo en la BD para que genere su nuevo ID (IDENTITY)
+            await _repository.CreateAsync(newNode);
+
+            // Llamada recursiva para los hijos
+            foreach (var child in originalNode.Children)
+            {
+                // Para los hijos, mantenemos su nombre y descripción originales, 
+                // pero los atamos al ID del nodo que acabamos de crear
+                await CloneNodeRecursive(child, newNode.Id); 
+            }
+        }
+
+        // Iniciamos la clonación desde la raíz, pasándole el nuevo nombre
+        await CloneNodeRecursive(originalRoot, originalRoot.ParentId, cloneDto.NewName, cloneDto.NewDescription);
+
+        return true;
+    }
 }
