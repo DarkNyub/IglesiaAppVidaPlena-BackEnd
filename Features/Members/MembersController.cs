@@ -65,4 +65,27 @@ public class MemberController : ControllerBase
 
         return NoContent();
     }
+    // ==========================================
+    // ENDPOINT PARA CARGA MASIVA (Excel)
+    // ==========================================
+    [HttpPost("{id:int}/bulk-upload")]
+    public async Task<IActionResult> BulkUpload(int id, [FromBody] MemberBulkDto bulkDto)
+    {
+        try
+        {
+            // Validamos que el JSON no venga nulo o vacío
+            if (bulkDto == null || !bulkDto.Members.Any())
+                return BadRequest(new { message = "El archivo no contiene miembros válidos." });
+
+            // Enviamos el trabajo pesado al servicio
+            var count = await _service.BulkUpsertAsync(bulkDto);
+            
+            // Devolvemos el conteo para que Flutter lo muestre en el SnackBar
+            return Ok(new { count = count, message = "Proceso masivo finalizado" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Error procesando archivo: {ex.Message}" });
+        }
+    }
 }

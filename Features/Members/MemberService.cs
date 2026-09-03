@@ -179,4 +179,55 @@ public class MemberService
 
         return await _repository.BulkCreateAsync(entities);
     }
+    // ==========================================
+    // LÓGICA DE CARGA MASIVA (UPSERT)
+    // ==========================================
+    public async Task<int> BulkUpsertAsync(MemberBulkDto bulkDto)
+    {
+        int processedCount = 0;
+
+        foreach (var dto in bulkDto.Members)
+        {
+            // Protección: Ignorar filas del Excel que no tengan Nombre
+            if (string.IsNullOrWhiteSpace(dto.FirstName)) continue;
+
+            // 1. Si no tiene cédula, no podemos compararlo. Lo creamos como nuevo directamente.
+            if (string.IsNullOrWhiteSpace(dto.Document))
+            {
+                var newEntity = MemberMapper.ToEntity(dto);
+                await _repository.CreateAsync(newEntity, dto.Roles);
+                processedCount++;
+                continue;
+            }
+
+            // 2. Buscar si ya existe por Cédula (Documento)
+            var existingEntity = await _repository.GetByDocumentAsync(dto.Document);
+
+            if (existingEntity != null)
+            {
+                // 🔥 REGLA 1: Si existe, lo actualizamos.
+                // 🔥 REGLA 2: Si está dado de baja, se queda dado de baja.
+                bool wasDeleted = existingEntity.IsDeleted;
+
+                // Actualizamos los datos básicos
+                MemberMapper.UpdateEntity(existingEntity, dto);
+                
+                // Blindaje: Forzamos a mantener su estado de auditoría original
+                existingEntity.IsDeleted = wasDeleted; 
+
+                // Usamos la magia de tu "Smart Sync" en el Repositorio para fusionar los cargos/roles
+                await _repository.UpdateAsync(existingEntity, dto.Roles);
+            }
+            else
+            {
+                // 🔥 REGLA 3: Si no existe, se inserta como nuevo y activo.
+                var newEntity = MemberMapper.ToEntity(dto);
+                await _repository.CreateAsync(newEntity, dto.Roles);
+            }
+
+            processedCount++;
+        }
+
+        return processedCount;
+    }
 }

@@ -156,4 +156,14 @@ public class MemberRepository
         await _context.SaveChangesAsync(); // Se guardan todos los miembros y sus roles en un solo viaje
         return entities.Count;
     }
+    // ==========================================
+    // METODO PARA CARGA MASIVA (Búsqueda por Cédula)
+    // ==========================================
+    public async Task<Member?> GetByDocumentAsync(string document)
+    {
+        return await _context.Members
+            .IgnoreQueryFilters() // 🔥 VITAL: Buscar incluso si están dados de baja
+            .Include(x => x.OrganizationMemberships) // Traemos los roles actuales para el Smart Sync
+            .FirstOrDefaultAsync(x => x.Document == document);
+    }
 }
