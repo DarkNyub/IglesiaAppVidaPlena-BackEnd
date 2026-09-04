@@ -55,16 +55,20 @@ public class RegistryEventController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "SuperAdmin,Admin")] // Solo Admins pueden anular reportes
     public async Task<IActionResult> Delete(int id)
     {
-        var deleted = await _service.DeleteAsync(id);
-        return deleted ? NoContent() : NotFound();
+        var success = await _service.DeleteAsync(id);
+        if (!success) return NotFound();
+        return NoContent();
     }
-    [HttpPost("{id:int}/restore")]
+
+    [HttpPost("{id}/restore")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<IActionResult> Restore(int id)
     {
         var success = await _service.RestoreAsync(id);
         if (!success) return NotFound();
-        return NoContent();
+        return Ok(new { message = "Restaurado" });
     }
 }

@@ -1,6 +1,7 @@
 ﻿using IglesiaBackend.Features.Events;
 using IglesiaBackend.Features.OrganizationStructures;
 using System.Security.Claims;
+using IglesiaBackend.Features.RegistryEvents;
 
 namespace IglesiaBackend.Features.Events;
 
@@ -9,12 +10,18 @@ public class EventService
     private readonly EventRepository _repository;
     private readonly OrganizationStructureRepository _orgRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly RegistryEventRepository _registryEventRepo;
 
-    public EventService(EventRepository repository, OrganizationStructureRepository orgRepository, IHttpContextAccessor httpContextAccessor)
+    public EventService(
+        EventRepository repository, 
+        OrganizationStructureRepository orgRepository, 
+        IHttpContextAccessor httpContextAccessor,
+        RegistryEventRepository registryEventRepo) 
     {
         _repository = repository;
         _orgRepository = orgRepository;
         _httpContextAccessor = httpContextAccessor;
+        _registryEventRepo = registryEventRepo; // <--- 3. ASIGNARLA
     }
 
     private async Task<List<int>?> GetAllowedStructureIdsAsync()
@@ -38,6 +45,33 @@ public class EventService
     {
         var allowedIds = await GetAllowedStructureIdsAsync();
         var events = await _repository.GetAllAsync(allowedIds);
+        // 🔥 MAGIA: FILTRO DE EVENTOS YA LLENADOS HOY
+        var user = _httpContextAccessor.HttpContext?.User;
+        var memberIdClaim = user?.FindFirst("memberId")?.Value;
+        
+        if (!string.IsNullOrEmpty(memberIdClaim) && int.TryParse(memberIdClaim, out int leaderId))
+        {
+            var filteredEvents = new List<Event>();
+            
+            // Requerirás inyectar RegistryEventRepository en el constructor de EventService para esto
+            foreach (var ev in events)
+            {
+                if (ev.AllowMultipleSubmissionsPerDay)
+                {
+                    filteredEvents.Add(ev);
+                }
+                else
+                {
+                    bool alreadySubmitted = await _registryEventRepo.HasLeaderSubmittedTodayAsync(ev.Id, leaderId);
+                    if (!alreadySubmitted)
+                    {
+                        filteredEvents.Add(ev);
+                    }
+                }
+            }
+            events = filteredEvents;
+        }
+
         return events.Select(EventMapper.ToDto).ToList();
     }
 

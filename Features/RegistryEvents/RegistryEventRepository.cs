@@ -79,5 +79,17 @@ public class RegistryEventRepository
         _context.RegistryEvents.Update(entity);
         await _context.SaveChangesAsync();
     }
+    // 🔥 NUEVO: Verifica si el líder ya envió un reporte para este evento HOY
+    public async Task<bool> HasLeaderSubmittedTodayAsync(int eventId, int leaderId)
+    {
+        var today = DateTime.UtcNow.Date;
+        
+        return await _context.RegistryEvents
+            .AnyAsync(r => 
+                r.EventId == eventId && 
+                r.LeaderId == leaderId && 
+                !r.IsDeleted &&
+                r.RegistryDate.Date == today);
+    }
 
 }

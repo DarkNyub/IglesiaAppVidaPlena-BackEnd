@@ -47,6 +47,11 @@ public class Event : AuditableEntity
     public bool IsRecurring { get; set; } = false;
 
     /// <summary>
+    /// 🔥 NUEVO: Indica si un líder puede llenar el reporte de este evento más de una vez el mismo día
+    /// </summary>
+    public bool AllowMultipleSubmissionsPerDay { get; set; } = false;
+
+    /// <summary>
     /// Tipo de recurrencia: "NONE", "DAILY", "WEEKLY", "MONTHLY", "ANNUALLY"
     /// </summary>
     [Required]

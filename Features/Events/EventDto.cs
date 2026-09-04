@@ -13,6 +13,7 @@ public class EventDto
 
     // Mantenemos IsRecurring por compatibilidad, aunque la lógica fuerte ahora es RecurrenceType
     public bool IsRecurring { get; set; }
+    public bool AllowMultipleSubmissionsPerDay { get; set; }
 
     // --- NUEVA LÓGICA DE RECURRENCIA ---
     public string RecurrenceType { get; set; } = "NONE";
@@ -45,6 +46,7 @@ public class EventCreateUpdateDto
     public bool IsInPerson { get; set; }
 
     public bool IsRecurring { get; set; }
+    public bool AllowMultipleSubmissionsPerDay { get; set; }
 
     // --- NUEVA LÓGICA DE RECURRENCIA ---
     [Required]
