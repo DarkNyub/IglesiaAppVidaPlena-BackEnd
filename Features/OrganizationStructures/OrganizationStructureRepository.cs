@@ -116,4 +116,44 @@ public class OrganizationStructureRepository
         BuildTree(root);
         return root;
     }
+    // ==========================================
+    // MOTOR DE VISIBILIDAD DESCENDENTE (TENANCY)
+    // ==========================================
+    public async Task<List<int>> GetDescendingStructureIdsAsync(int memberId)
+    {
+        // 1. Obtener los IDs de las estructuras donde el miembro está asignado directamente
+        var directStructureIds = await _context.OrganizationMembers
+            .Where(om => om.MemberId == memberId && om.IsActive && !om.IsDeleted)
+            .Select(om => om.OrganizationStructureId)
+            .ToListAsync();
+
+        if (!directStructureIds.Any()) return new List<int>();
+
+        // 2. Traer la jerarquía plana a memoria (súper rápido) para evitar múltiples queries SQL
+        var allStructures = await _context.OrganizationStructures
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .Select(x => new { x.Id, x.ParentId })
+            .ToListAsync();
+
+        var allowedIds = new HashSet<int>(directStructureIds);
+        var queue = new Queue<int>(directStructureIds);
+
+        // 3. Algoritmo BFS (Búsqueda en Anchura) para encontrar descendientes
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            var children = allStructures.Where(x => x.ParentId == currentId).Select(x => x.Id).ToList();
+            
+            foreach (var childId in children)
+            {
+                if (allowedIds.Add(childId)) // Si es un ID nuevo, lo agregamos y buscamos a sus hijos
+                {
+                    queue.Enqueue(childId);
+                }
+            }
+        }
+
+        return allowedIds.ToList();
+    }
 }

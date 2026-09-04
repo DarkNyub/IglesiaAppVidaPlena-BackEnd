@@ -1,19 +1,43 @@
 ﻿using IglesiaBackend.Features.Events;
+using IglesiaBackend.Features.OrganizationStructures;
+using System.Security.Claims;
 
 namespace IglesiaBackend.Features.Events;
 
 public class EventService
 {
     private readonly EventRepository _repository;
+    private readonly OrganizationStructureRepository _orgRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public EventService(EventRepository repository)
+    public EventService(EventRepository repository, OrganizationStructureRepository orgRepository, IHttpContextAccessor httpContextAccessor)
     {
         _repository = repository;
+        _orgRepository = orgRepository;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private async Task<List<int>?> GetAllowedStructureIdsAsync()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null) return null;
+
+        var role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        // Si es Admin, devuelve null (Ver todo)
+        if (role.Contains("Admin", StringComparison.OrdinalIgnoreCase) || role.Contains("Super", StringComparison.OrdinalIgnoreCase)) 
+            return null;
+
+        var memberIdClaim = user.FindFirst("memberId")?.Value;
+        if (string.IsNullOrEmpty(memberIdClaim) || !int.TryParse(memberIdClaim, out int memberId))
+            return new List<int>(); // Si no tiene un miembro atado, ve cero resultados
+
+        return await _orgRepository.GetDescendingStructureIdsAsync(memberId);
     }
 
     public async Task<List<EventDto>> GetAllAsync()
     {
-        var events = await _repository.GetAllAsync();
+        var allowedIds = await GetAllowedStructureIdsAsync();
+        var events = await _repository.GetAllAsync(allowedIds);
         return events.Select(EventMapper.ToDto).ToList();
     }
 

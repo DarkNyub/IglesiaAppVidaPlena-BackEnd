@@ -13,14 +13,24 @@ public class EventRepository
         _context = context;
     }
 
-    public async Task<List<Event>> GetAllAsync()
+    public async Task<List<Event>> GetAllAsync(List<int>? allowedStructureIds = null)
     {
-        return await _context.Events
+        var query = _context.Events
             .AsNoTracking()
             .IgnoreQueryFilters()
             .Include(x => x.OrganizationStructure)
             .Include(x => x.EventRecordTypes)
-            .ToListAsync();
+            .AsQueryable();
+
+        // 🔥 FILTRO MÁGICO DE AISLAMIENTO 🔥
+        if (allowedStructureIds != null)
+        {
+            // Eventos globales (StructureId == null) o eventos de la red permitida
+            query = query.Where(e => e.OrganizationStructureId == null || 
+                                     allowedStructureIds.Contains(e.OrganizationStructureId.Value));
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(int id)

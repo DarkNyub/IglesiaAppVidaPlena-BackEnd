@@ -13,19 +13,27 @@ public class MemberRepository
         _context = context;
     }
 
-    public async Task<List<Member>> GetAllAsync()
+    public async Task<List<Member>> GetAllAsync(List<int>? allowedStructureIds = null)
     {
-        return await _context.Members
-            .IgnoreQueryFilters() // Para ver los Soft Deleted
+        var query = _context.Members
+            .IgnoreQueryFilters() 
             .AsNoTracking()
-            .AsSplitQuery() // <--- AGREGA ESTO
-            .Include(x => x.User) // Cargar Usuario vinculado
-            // CORRECCIÓN AQUÍ: Cargar Nombres de Estructuras y Roles
+            .AsSplitQuery() 
+            .Include(x => x.User) 
             .Include(x => x.OrganizationMemberships)
-                .ThenInclude(om => om.OrganizationStructure) // <--- Esto trae el Nombre de la Red/Ministerio
+                .ThenInclude(om => om.OrganizationStructure) 
             .Include(x => x.OrganizationMemberships)
-                .ThenInclude(om => om.ChurchFunctionRole)    // <--- Esto trae el Nombre del Cargo
-            .ToListAsync();
+                .ThenInclude(om => om.ChurchFunctionRole)    
+            .AsQueryable();
+
+        // 🔥 FILTRO MÁGICO DE AISLAMIENTO 🔥
+        if (allowedStructureIds != null)
+        {
+            query = query.Where(m => m.OrganizationMemberships
+                .Any(om => allowedStructureIds.Contains(om.OrganizationStructureId)));
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<Member?> GetByIdAsync(int id)
