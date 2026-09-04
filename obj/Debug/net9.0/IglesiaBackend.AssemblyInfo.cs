@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IglesiaBackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+38a692e8459c463562577d23383e20174fea0662")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c4d5c11ffe3233ff988a756eccc587f4e9cb054d")]
 [assembly: System.Reflection.AssemblyProductAttribute("IglesiaBackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IglesiaBackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

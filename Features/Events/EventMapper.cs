@@ -19,6 +19,7 @@ public static class EventMapper
             RecurrenceType = entity.RecurrenceType,
             RecurrenceInterval = entity.RecurrenceInterval,
             RecurringDays = entity.RecurringDays,
+            AllowMultipleSubmissionsPerDay = entity.AllowMultipleSubmissionsPerDay, // En el ToDto
             EndType = entity.EndType,
             EndDate = entity.EndDate,
             MaxOccurrences = entity.MaxOccurrences,
@@ -46,6 +47,7 @@ public static class EventMapper
 
             // Si el tipo no es NONE, entonces es recurrente.
             IsRecurring = dto.RecurrenceType != "NONE",
+            AllowMultipleSubmissionsPerDay = dto.AllowMultipleSubmissionsPerDay, // En el ToEntity / Update
 
             // --- NUEVOS CAMPOS ---
             RecurrenceType = dto.RecurrenceType,
@@ -71,6 +73,7 @@ public static class EventMapper
         // --- NUEVOS CAMPOS ---
         entity.RecurrenceType = dto.RecurrenceType;
         entity.RecurrenceInterval = dto.RecurrenceInterval;
+        entity.AllowMultipleSubmissionsPerDay = dto.AllowMultipleSubmissionsPerDay; // En el ToEntity / Update
         entity.RecurringDays = dto.RecurrenceType == "WEEKLY" ? dto.RecurringDays : null;
         entity.EndType = dto.EndType;
         entity.EndDate = dto.EndType == "UNTIL_DATE" ? dto.EndDate : null;
