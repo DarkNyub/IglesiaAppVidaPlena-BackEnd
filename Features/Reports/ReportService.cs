@@ -58,14 +58,6 @@ public class ReportService
         await _repository.UpdateSimpleAsync(entity);
         return true;
     }
-    public async Task<List<ChartDataDto>> GenerateReportDataAsync(int reportId)
-    {
-        return await _repository.GenerateReportDataAsync(reportId);
-    }
-    public async Task<ReportMetadataDto> GetMetadataAsync() // Renombrar a Async
-    {
-        return await _repository.GetReportMetadataAsync();
-    }
     public async Task<List<ReportColumnDto>> GetAvailableColumnsAsync(int recordTypeId)
     {
         return await _repository.GetAvailableColumnsAsync(recordTypeId);

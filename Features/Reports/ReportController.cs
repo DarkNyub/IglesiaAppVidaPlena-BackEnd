@@ -59,26 +59,6 @@ public class ReportController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id}/data")]
-    public async Task<IActionResult> GetReportData(int id)
-    {
-        try
-        {
-            var data = await _service.GenerateReportDataAsync(id);
-            return Ok(data);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-    [HttpGet("metadata")]
-    public async Task<IActionResult> GetReportMetadata()
-    {
-        var result = await _service.GetMetadataAsync();
-        return Ok(result);
-    }
-
     // 1. Flutter llama aquí para pintar los checkboxes
     [HttpGet("available-columns/{recordTypeId:int}")]
     public async Task<IActionResult> GetAvailableColumns(int recordTypeId)
