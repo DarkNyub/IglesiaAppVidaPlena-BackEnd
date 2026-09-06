@@ -1,8 +1,8 @@
 ﻿using IglesiaBackend.Data;
+using IglesiaBackend.Features.OrganizationMembers; // Para acceder a los roles del líder
 using IglesiaBackend.Features.RegistryEvents;
 using IglesiaBackend.Features.Reports.Dtos;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 using System.Text.Json;
 
 namespace IglesiaBackend.Features.Reports;
@@ -88,7 +88,7 @@ public class ReportRepository
     }
 
     // =========================================================
-    // GENERACIÓN PLANO Y MATRICIAL POR SEMANAS CON TOTALIZADOR
+    // MATRIZ CON SUBTOTALES SEMANALES Y FILTRO JERÁRQUICO
     // =========================================================
     public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request)
     {
@@ -104,7 +104,7 @@ public class ReportRepository
             .Include(x => x.Leader)
             .Where(x => x.RecordTypeId == request.RecordTypeId && !x.IsDeleted);
 
-        // Filtro por Rango de Fechas
+        // 1. FILTRO DE FECHAS
         if (request.StartDate.HasValue)
             query = query.Where(x => x.RegistryDate >= request.StartDate.Value);
 
@@ -114,84 +114,152 @@ public class ReportRepository
             query = query.Where(x => x.RegistryDate <= endOfDay);
         }
 
-        // 🔥 FILTRO POR ESTRUCTURA ORGANIZACIONAL (RED/MINISTERIO)
+        // 2. FILTRO INTELIGENTE POR RED/MINISTERIO (Jerarquía + Eventos Globales)
         if (request.StructureId.HasValue && request.StructureId.Value > 0)
         {
-            query = query.Where(x => x.Event != null && x.Event.OrganizationStructureId == request.StructureId.Value);
+            var targetId = request.StructureId.Value;
+            var allStructures = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
+            var structureIds = new List<int> { targetId };
+            
+            // Función recursiva para obtener todas las sub-estructuras (ej. todas las células de una red)
+            void AddChildren(int parentId)
+            {
+                var children = allStructures.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
+                foreach (var child in children)
+                {
+                    if (!structureIds.Contains(child))
+                    {
+                        structureIds.Add(child);
+                        AddChildren(child);
+                    }
+                }
+            }
+            AddChildren(targetId);
+
+            query = query.Where(x => 
+                // A) El evento pertenece directamente a la Red o a sus células
+                (x.Event != null && x.Event.OrganizationStructureId.HasValue && structureIds.Contains(x.Event.OrganizationStructureId.Value)) ||
+                // B) O el evento es Global, PERO el líder que lo llenó pertenece a esa Red o sus células
+                (x.Event != null && !x.Event.OrganizationStructureId.HasValue && _context.OrganizationMembers.Any(om => om.MemberId == x.LeaderId && structureIds.Contains(om.OrganizationStructureId)))
+            );
         }
 
         var rawData = await query.OrderBy(x => x.RegistryDate).ToListAsync();
 
-        // 1. Detección de semanas y asignación de etiquetas "Semana N (DD/MM - DD/MM)"
-        foreach (var row in rawData)
+        // 3. AGRUPAR POR SEMANA EXACTA
+        var groupedByWeek = rawData.GroupBy(row => 
         {
-            var flatRow = new Dictionary<string, object>();
-            var jsonElements = row.DataJson.RootElement;
             var regDate = row.RegistryDate.ToLocalTime();
-
-            // Cálculo de rango de la semana
-            var startOfWeek = regDate.Date.AddDays(-(int)regDate.DayOfWeek + (int)DayOfWeek.Monday);
+            // Determinamos el Lunes de esa semana
+            int diff = (7 + (regDate.DayOfWeek - DayOfWeek.Monday)) % 7;
+            var startOfWeek = regDate.Date.AddDays(-1 * diff);
             var endOfWeek = startOfWeek.AddDays(6);
-            string weekTag = $"Semana ({startOfWeek:dd/MM} - {endOfWeek:dd/MM})";
+            return $"Semana ({startOfWeek:dd/MM} al {endOfWeek:dd/MM})";
+        }).ToList();
 
-            flatRow["Semana"] = weekTag;
+        var numericColumns = new HashSet<string>();
+
+        // 4. PROCESAR FILAS Y GENERAR SUBTOTALES POR SEMANA
+        foreach (var weekGroup in groupedByWeek)
+        {
+            string weekTag = weekGroup.Key;
+            var weekTotals = new Dictionary<string, decimal>();
+
+            foreach (var row in weekGroup)
+            {
+                var flatRow = new Dictionary<string, object>();
+                flatRow["Semana"] = weekTag;
+                
+                var jsonElements = row.DataJson.RootElement;
+                var regDate = row.RegistryDate.ToLocalTime();
+
+                foreach (var colKey in request.SelectedColumns)
+                {
+                    string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
+
+                    if (colKey == "registryDate") flatRow[headerLabel] = regDate.ToString("yyyy-MM-dd HH:mm");
+                    else if (colKey == "eventName") flatRow[headerLabel] = row.Event?.Name ?? "N/A";
+                    else if (colKey == "structureName") flatRow[headerLabel] = row.Event?.OrganizationStructure?.Name ?? "General";
+                    else if (colKey == "leaderName") flatRow[headerLabel] = row.Leader != null ? $"{row.Leader.FirstName} {row.Leader.LastName}" : "N/A";
+                    else
+                    {
+                        if (jsonElements.TryGetProperty(colKey, out var element))
+                        {
+                            if (element.ValueKind == JsonValueKind.Number)
+                            {
+                                var val = element.GetDecimal();
+                                flatRow[headerLabel] = val;
+                                numericColumns.Add(headerLabel);
+                                weekTotals[headerLabel] = weekTotals.GetValueOrDefault(headerLabel) + val;
+                            }
+                            else if (element.ValueKind == JsonValueKind.String && decimal.TryParse(element.GetString(), out var valStr))
+                            {
+                                flatRow[headerLabel] = valStr;
+                                numericColumns.Add(headerLabel);
+                                weekTotals[headerLabel] = weekTotals.GetValueOrDefault(headerLabel) + valStr;
+                            }
+                            else if (element.ValueKind == JsonValueKind.True) flatRow[headerLabel] = "Sí";
+                            else if (element.ValueKind == JsonValueKind.False) flatRow[headerLabel] = "No";
+                            else flatRow[headerLabel] = element.ToString() ?? "";
+                        }
+                        else
+                        {
+                            flatRow[headerLabel] = "";
+                        }
+                    }
+                }
+                resultData.Add(flatRow);
+            }
+
+            // 🔥 FILA DE SUBTOTAL PARA ESTA SEMANA
+            var subtotalRow = new Dictionary<string, object>();
+            subtotalRow["Semana"] = $"SUBTOTAL {weekTag}";
 
             foreach (var colKey in request.SelectedColumns)
             {
                 string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
-
-                if (colKey == "registryDate") flatRow[headerLabel] = regDate.ToString("yyyy-MM-dd HH:mm");
-                else if (colKey == "eventName") flatRow[headerLabel] = row.Event?.Name ?? "N/A";
-                else if (colKey == "structureName") flatRow[headerLabel] = row.Event?.OrganizationStructure?.Name ?? "General";
-                else if (colKey == "leaderName") flatRow[headerLabel] = row.Leader != null ? $"{row.Leader.FirstName} {row.Leader.LastName}" : "N/A";
+                
+                if (numericColumns.Contains(headerLabel))
+                {
+                    subtotalRow[headerLabel] = weekTotals.GetValueOrDefault(headerLabel, 0);
+                }
                 else
                 {
-                    if (jsonElements.TryGetProperty(colKey, out var element))
-                    {
-                        flatRow[headerLabel] = element.ValueKind switch
-                        {
-                            JsonValueKind.String => element.GetString() ?? "",
-                            JsonValueKind.Number => element.GetDecimal(),
-                            JsonValueKind.True => "Sí",
-                            JsonValueKind.False => "No",
-                            _ => element.ToString()
-                        };
-                    }
-                    else
-                    {
-                        flatRow[headerLabel] = "";
-                    }
+                    subtotalRow[headerLabel] = ""; // Limpiamos textos en la fila de sumatoria
                 }
             }
-            resultData.Add(flatRow);
+            resultData.Add(subtotalRow);
         }
 
-        // 🔥 FILA DE TOTALIZADOR GENERAL
+        // 5. FILA DE TOTAL GENERAL (Sumatoria de toda la consulta)
         if (resultData.Count > 0)
         {
-            var totalRow = new Dictionary<string, object>();
-            totalRow["Semana"] = "TOTALES ACUMULADOS";
-
-            var numericColumns = resultData.First().Keys.Where(k => k != "Semana").ToList();
-
-            foreach (var key in numericColumns)
+            var grandTotalRow = new Dictionary<string, object>();
+            grandTotalRow["Semana"] = "TOTAL GENERAL DEL PERÍODO";
+            
+            foreach (var colKey in request.SelectedColumns)
             {
-                decimal sum = 0;
-                bool isNumeric = false;
-
-                foreach (var row in resultData)
+                string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
+                
+                if (numericColumns.Contains(headerLabel))
                 {
-                    if (row.TryGetValue(key, out var val) && val is decimal numVal)
+                    decimal gTotal = 0;
+                    foreach (var row in resultData)
                     {
-                        sum += numVal;
-                        isNumeric = true;
+                        // Sumamos solo las filas de subtotal para no duplicar datos
+                        if (row["Semana"].ToString()!.StartsWith("SUBTOTAL") && row.TryGetValue(headerLabel, out var val) && val is decimal dVal)
+                        {
+                            gTotal += dVal;
+                        }
                     }
+                    grandTotalRow[headerLabel] = gTotal;
                 }
-
-                totalRow[key] = isNumeric ? sum : "---";
+                else
+                {
+                    grandTotalRow[headerLabel] = "";
+                }
             }
-
-            resultData.Add(totalRow);
+            resultData.Add(grandTotalRow);
         }
 
         return resultData;
