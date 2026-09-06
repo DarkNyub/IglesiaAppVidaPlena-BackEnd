@@ -43,6 +43,7 @@ public class DynamicReportRequestDto
     public int RecordTypeId { get; set; }
     public int? EventId { get; set; }
     public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
+    public DateTime? EndDate { get; set; }// 🔥 PROPIEDAD FALTANTE AGREGADA
+    public int? StructureId { get; set; }
     public List<string> SelectedColumns { get; set; } = new();
 }

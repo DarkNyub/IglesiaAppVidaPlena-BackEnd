@@ -2,6 +2,7 @@
 using IglesiaBackend.Features.RegistryEvents;
 using IglesiaBackend.Features.Reports.Dtos;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Text.Json;
 
 namespace IglesiaBackend.Features.Reports;
@@ -55,9 +56,6 @@ public class ReportRepository
         await _context.SaveChangesAsync();
     }
 
-    // =========================================================
-    // COLUMNAS DISPONIBLES (Fijas + Campos Dinámicos del Formulario)
-    // =========================================================
     public async Task<List<ReportColumnDto>> GetAvailableColumnsAsync(int recordTypeId)
     {
         var columns = new List<ReportColumnDto>
@@ -90,13 +88,12 @@ public class ReportRepository
     }
 
     // =========================================================
-    // GENERACIÓN PLANO DE EXCEL CON ENCABEZADOS BONITOS
+    // GENERACIÓN PLANO Y MATRICIAL POR SEMANAS CON TOTALIZADOR
     // =========================================================
     public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request)
     {
         var resultData = new List<Dictionary<string, object>>();
 
-        // Traemos las etiquetas humanas de los campos dinámicos
         var columnLabels = await GetAvailableColumnsAsync(request.RecordTypeId);
         var labelMap = columnLabels.ToDictionary(c => c.Key, c => c.Label);
 
@@ -107,6 +104,7 @@ public class ReportRepository
             .Include(x => x.Leader)
             .Where(x => x.RecordTypeId == request.RecordTypeId && !x.IsDeleted);
 
+        // Filtro por Rango de Fechas
         if (request.StartDate.HasValue)
             query = query.Where(x => x.RegistryDate >= request.StartDate.Value);
 
@@ -116,18 +114,33 @@ public class ReportRepository
             query = query.Where(x => x.RegistryDate <= endOfDay);
         }
 
-        var rawData = await query.OrderByDescending(x => x.RegistryDate).ToListAsync();
+        // 🔥 FILTRO POR ESTRUCTURA ORGANIZACIONAL (RED/MINISTERIO)
+        if (request.StructureId.HasValue && request.StructureId.Value > 0)
+        {
+            query = query.Where(x => x.Event != null && x.Event.OrganizationStructureId == request.StructureId.Value);
+        }
 
+        var rawData = await query.OrderBy(x => x.RegistryDate).ToListAsync();
+
+        // 1. Detección de semanas y asignación de etiquetas "Semana N (DD/MM - DD/MM)"
         foreach (var row in rawData)
         {
             var flatRow = new Dictionary<string, object>();
             var jsonElements = row.DataJson.RootElement;
+            var regDate = row.RegistryDate.ToLocalTime();
+
+            // Cálculo de rango de la semana
+            var startOfWeek = regDate.Date.AddDays(-(int)regDate.DayOfWeek + (int)DayOfWeek.Monday);
+            var endOfWeek = startOfWeek.AddDays(6);
+            string weekTag = $"Semana ({startOfWeek:dd/MM} - {endOfWeek:dd/MM})";
+
+            flatRow["Semana"] = weekTag;
 
             foreach (var colKey in request.SelectedColumns)
             {
                 string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
 
-                if (colKey == "registryDate") flatRow[headerLabel] = row.RegistryDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                if (colKey == "registryDate") flatRow[headerLabel] = regDate.ToString("yyyy-MM-dd HH:mm");
                 else if (colKey == "eventName") flatRow[headerLabel] = row.Event?.Name ?? "N/A";
                 else if (colKey == "structureName") flatRow[headerLabel] = row.Event?.OrganizationStructure?.Name ?? "General";
                 else if (colKey == "leaderName") flatRow[headerLabel] = row.Leader != null ? $"{row.Leader.FirstName} {row.Leader.LastName}" : "N/A";
@@ -151,6 +164,34 @@ public class ReportRepository
                 }
             }
             resultData.Add(flatRow);
+        }
+
+        // 🔥 FILA DE TOTALIZADOR GENERAL
+        if (resultData.Count > 0)
+        {
+            var totalRow = new Dictionary<string, object>();
+            totalRow["Semana"] = "TOTALES ACUMULADOS";
+
+            var numericColumns = resultData.First().Keys.Where(k => k != "Semana").ToList();
+
+            foreach (var key in numericColumns)
+            {
+                decimal sum = 0;
+                bool isNumeric = false;
+
+                foreach (var row in resultData)
+                {
+                    if (row.TryGetValue(key, out var val) && val is decimal numVal)
+                    {
+                        sum += numVal;
+                        isNumeric = true;
+                    }
+                }
+
+                totalRow[key] = isNumeric ? sum : "---";
+            }
+
+            resultData.Add(totalRow);
         }
 
         return resultData;
