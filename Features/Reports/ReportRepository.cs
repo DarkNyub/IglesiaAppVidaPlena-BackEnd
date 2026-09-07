@@ -292,8 +292,9 @@ public class ReportRepository
 
         return resultData;
     }
+    
     // =========================================================
-    // GENERACIÓN DE GRÁFICOS (BARRAS AGRUPADAS POR RED)
+    // GENERACIÓN DE GRÁFICOS (EJE X = SEMANAS, EJE Y = CANTIDADES)
     // =========================================================
     public async Task<List<ChartSeriesDto>> GenerateChartDataAsync(DynamicReportRequestDto request, string userRole, int? currentMemberId)
     {
@@ -316,7 +317,7 @@ public class ReportRepository
             query = query.Where(x => x.RegistryDate <= endOfDay);
         }
 
-        // 2. SEGURIDAD A NIVEL DE FILA (RLS)
+        // 2. SEGURIDAD A NIVEL DE FILA (RLS) Y FILTRO POR RED
         var normalizedRole = userRole.ToUpper();
         bool isSuperAdmin = normalizedRole == "SUPERADMIN" || normalizedRole == "ADMIN";
         
@@ -371,12 +372,25 @@ public class ReportRepository
 
         var rawData = await query.ToListAsync();
 
-        // 3. AGRUPAR POR RED/MINISTERIO Y SUMARIZAR
-        var groupedByNetwork = rawData.GroupBy(x => x.Event?.OrganizationStructure?.Name ?? "General").ToList();
+        // 3. AGRUPAR POR SEMANAS (EJE X) Y ORDENAR CRONOLÓGICAMENTE
+        var groupedByWeek = rawData
+            .GroupBy(row => 
+            {
+                var regDate = row.RegistryDate.ToLocalTime();
+                int diff = (7 + (regDate.DayOfWeek - DayOfWeek.Monday)) % 7;
+                var startOfWeek = regDate.Date.AddDays(-1 * diff);
+                var endOfWeek = startOfWeek.AddDays(6);
+                
+                // Agrupamos por un objeto que nos permita ordenar por fecha real, no por texto alfabético
+                return new { Start = startOfWeek.Date, Label = $"{startOfWeek:dd/MM}\n{endOfWeek:dd/MM}" };
+            })
+            .OrderBy(g => g.Key.Start) // 🔥 ORDEN ESTRICTO DEL PASO DEL TIEMPO
+            .ToList();
 
-        foreach (var group in groupedByNetwork)
+        // 4. PROCESAR Y SUMARIZAR MÉTRICAS (EJE Y)
+        foreach (var group in groupedByWeek)
         {
-            var series = new ChartSeriesDto { GroupName = group.Key };
+            var series = new ChartSeriesDto { GroupName = group.Key.Label };
 
             foreach (var row in group)
             {
