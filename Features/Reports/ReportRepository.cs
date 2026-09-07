@@ -292,4 +292,116 @@ public class ReportRepository
 
         return resultData;
     }
+    // =========================================================
+    // GENERACIÓN DE GRÁFICOS (BARRAS AGRUPADAS POR RED)
+    // =========================================================
+    public async Task<List<ChartSeriesDto>> GenerateChartDataAsync(DynamicReportRequestDto request, string userRole, int? currentMemberId)
+    {
+        var resultData = new List<ChartSeriesDto>();
+
+        var columnLabels = await GetAvailableColumnsAsync(request.RecordTypeId);
+        var labelMap = columnLabels.ToDictionary(c => c.Key, c => c.Label);
+
+        var query = _context.RegistryEvents
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Include(x => x.Event).ThenInclude(e => e.OrganizationStructure)
+            .Where(x => x.RecordTypeId == request.RecordTypeId && !x.IsDeleted);
+
+        // 1. FILTRO DE FECHAS
+        if (request.StartDate.HasValue) query = query.Where(x => x.RegistryDate >= request.StartDate.Value);
+        if (request.EndDate.HasValue)
+        {
+            var endOfDay = request.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(x => x.RegistryDate <= endOfDay);
+        }
+
+        // 2. SEGURIDAD A NIVEL DE FILA (RLS)
+        var normalizedRole = userRole.ToUpper();
+        bool isSuperAdmin = normalizedRole == "SUPERADMIN" || normalizedRole == "ADMIN";
+        
+        List<int> allowedStructureIds = new List<int>();
+        var allStructs = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
+
+        void GetChildrenStructures(int parentId, List<int> targetList)
+        {
+            var children = allStructs.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
+            foreach (var child in children)
+            {
+                if (!targetList.Contains(child))
+                {
+                    targetList.Add(child);
+                    GetChildrenStructures(child, targetList);
+                }
+            }
+        }
+
+        if (!isSuperAdmin && currentMemberId.HasValue)
+        {
+            var userStructures = await _context.OrganizationMembers.Where(om => om.MemberId == currentMemberId.Value).Select(om => om.OrganizationStructureId).ToListAsync();
+            foreach (var us in userStructures)
+            {
+                if (!allowedStructureIds.Contains(us)) allowedStructureIds.Add(us);
+                GetChildrenStructures(us, allowedStructureIds);
+            }
+            if (!allowedStructureIds.Any()) return resultData;
+        }
+
+        List<int> filterStructureIds = new List<int>();
+        if (request.StructureId.HasValue && request.StructureId.Value > 0)
+        {
+            filterStructureIds.Add(request.StructureId.Value);
+            GetChildrenStructures(request.StructureId.Value, filterStructureIds);
+            if (!isSuperAdmin)
+            {
+                filterStructureIds = filterStructureIds.Intersect(allowedStructureIds).ToList();
+                if (!filterStructureIds.Any()) return resultData; 
+            }
+        }
+        else if (!isSuperAdmin) filterStructureIds = allowedStructureIds;
+
+        if (filterStructureIds.Any())
+        {
+            var validLeaderIds = await _context.OrganizationMembers.Where(om => filterStructureIds.Contains(om.OrganizationStructureId)).Select(om => om.MemberId).Distinct().ToListAsync();
+            query = query.Where(x => 
+                (x.Event != null && x.Event.OrganizationStructureId.HasValue && filterStructureIds.Contains(x.Event.OrganizationStructureId.Value)) ||
+                (x.Event != null && !x.Event.OrganizationStructureId.HasValue && validLeaderIds.Contains(x.LeaderId))
+            );
+        }
+
+        var rawData = await query.ToListAsync();
+
+        // 3. AGRUPAR POR RED/MINISTERIO Y SUMARIZAR
+        var groupedByNetwork = rawData.GroupBy(x => x.Event?.OrganizationStructure?.Name ?? "General").ToList();
+
+        foreach (var group in groupedByNetwork)
+        {
+            var series = new ChartSeriesDto { GroupName = group.Key };
+
+            foreach (var row in group)
+            {
+                var jsonElements = row.DataJson.RootElement;
+                foreach (var colKey in request.SelectedColumns)
+                {
+                    string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
+
+                    if (jsonElements.TryGetProperty(colKey, out var element))
+                    {
+                        if (element.ValueKind == JsonValueKind.Number)
+                        {
+                            series.Metrics[headerLabel] = series.Metrics.GetValueOrDefault(headerLabel) + element.GetDecimal();
+                        }
+                        else if (element.ValueKind == JsonValueKind.String && decimal.TryParse(element.GetString(), out var valStr))
+                        {
+                            series.Metrics[headerLabel] = series.Metrics.GetValueOrDefault(headerLabel) + valStr;
+                        }
+                    }
+                }
+            }
+
+            if (series.Metrics.Any()) resultData.Add(series);
+        }
+
+        return resultData;
+    }
 }

@@ -47,3 +47,8 @@ public class DynamicReportRequestDto
     public int? StructureId { get; set; }
     public List<string> SelectedColumns { get; set; } = new();
 }
+public class ChartSeriesDto
+{
+    public string GroupName { get; set; } = string.Empty; // Eje X: La Red o Ministerio
+    public Dictionary<string, decimal> Metrics { get; set; } = new(); // Barras: Asistencia, Nuevos, etc.
+}

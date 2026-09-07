@@ -90,4 +90,24 @@ public class ReportController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+    [HttpPost("generate-chart")]
+    public async Task<IActionResult> GenerateChartReport([FromBody] DynamicReportRequestDto request)
+    {
+        if (request.SelectedColumns == null || !request.SelectedColumns.Any())
+            return BadRequest(new { message = "Seleccione columnas para graficar." });
+
+        try
+        {
+            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            var memberIdClaim = User.Claims.FirstOrDefault(c => c.Type == "MemberId")?.Value;
+            int? currentMemberId = string.IsNullOrEmpty(memberIdClaim) ? null : int.Parse(memberIdClaim);
+
+            var data = await _service.GenerateChartDataAsync(request, userRole, currentMemberId);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

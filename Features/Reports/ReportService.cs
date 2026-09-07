@@ -67,4 +67,9 @@ public class ReportService
     {
         return await _repository.GenerateFlatReportAsync(request, userRole, currentMemberId);
     }
+    
+    public async Task<List<ChartSeriesDto>> GenerateChartDataAsync(DynamicReportRequestDto request, string userRole, int? currentMemberId)
+    {
+        return await _repository.GenerateChartDataAsync(request, userRole, currentMemberId);
+    }
 }
