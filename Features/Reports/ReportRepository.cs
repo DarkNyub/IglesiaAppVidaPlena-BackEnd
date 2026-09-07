@@ -88,9 +88,9 @@ public class ReportRepository
     }
 
     // =========================================================
-    // MATRIZ CON SUBTOTALES SEMANALES Y FILTRO JERÁRQUICO
+    // GENERACIÓN PLANO Y MATRICIAL POR SEMANAS CON TOTALIZADOR
     // =========================================================
-    public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request)
+    public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request, string userRole, int? currentMemberId)
     {
         var resultData = new List<Dictionary<string, object>>();
 
@@ -114,33 +114,75 @@ public class ReportRepository
             query = query.Where(x => x.RegistryDate <= endOfDay);
         }
 
-        // 2. FILTRO INTELIGENTE POR RED/MINISTERIO (Jerarquía + Eventos Globales)
-        if (request.StructureId.HasValue && request.StructureId.Value > 0)
+        // 🔥 2. SEGURIDAD A NIVEL DE FILA Y FILTRO JERÁRQUICO
+        var normalizedRole = userRole.ToUpper();
+        bool isSuperAdmin = normalizedRole == "SUPERADMIN" || normalizedRole == "ADMIN";
+        
+        List<int> allowedStructureIds = new List<int>();
+        var allStructs = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
+
+        // Función recursiva para obtener células hijas
+        void GetChildrenStructures(int parentId, List<int> targetList)
         {
-            var targetId = request.StructureId.Value;
-            var allStructures = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
-            var structureIds = new List<int> { targetId };
-            
-            // Función recursiva para obtener todas las sub-estructuras (ej. todas las células de una red)
-            void AddChildren(int parentId)
+            var children = allStructs.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
+            foreach (var child in children)
             {
-                var children = allStructures.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
-                foreach (var child in children)
+                if (!targetList.Contains(child))
                 {
-                    if (!structureIds.Contains(child))
-                    {
-                        structureIds.Add(child);
-                        AddChildren(child);
-                    }
+                    targetList.Add(child);
+                    GetChildrenStructures(child, targetList);
                 }
             }
-            AddChildren(targetId);
+        }
+
+        // Si es Líder/Facilitador, descubrimos su árbol permitido
+        if (!isSuperAdmin && currentMemberId.HasValue)
+        {
+            var userStructures = await _context.OrganizationMembers
+                .Where(om => om.MemberId == currentMemberId.Value)
+                .Select(om => om.OrganizationStructureId)
+                .ToListAsync();
+
+            foreach (var us in userStructures)
+            {
+                if (!allowedStructureIds.Contains(us)) allowedStructureIds.Add(us);
+                GetChildrenStructures(us, allowedStructureIds);
+            }
+
+            if (!allowedStructureIds.Any()) return new List<Dictionary<string, object>>(); // No tiene red, no ve reportes
+        }
+
+        // Resolvemos el filtro del Dropdown del usuario
+        List<int> filterStructureIds = new List<int>();
+        if (request.StructureId.HasValue && request.StructureId.Value > 0)
+        {
+            filterStructureIds.Add(request.StructureId.Value);
+            GetChildrenStructures(request.StructureId.Value, filterStructureIds);
+
+            // Intersectamos: No puede buscar una red que no le pertenezca
+            if (!isSuperAdmin)
+            {
+                filterStructureIds = filterStructureIds.Intersect(allowedStructureIds).ToList();
+                if (!filterStructureIds.Any()) return new List<Dictionary<string, object>>(); 
+            }
+        }
+        else if (!isSuperAdmin)
+        {
+            filterStructureIds = allowedStructureIds; // Filtro por defecto: todo su árbol
+        }
+
+        // Aplicamos el filtro al Query usando los LeaderIds en memoria (Evita errores de EF Core)
+        if (filterStructureIds.Any())
+        {
+            var validLeaderIds = await _context.OrganizationMembers
+                .Where(om => filterStructureIds.Contains(om.OrganizationStructureId))
+                .Select(om => om.MemberId)
+                .Distinct()
+                .ToListAsync();
 
             query = query.Where(x => 
-                // A) El evento pertenece directamente a la Red o a sus células
-                (x.Event != null && x.Event.OrganizationStructureId.HasValue && structureIds.Contains(x.Event.OrganizationStructureId.Value)) ||
-                // B) O el evento es Global, PERO el líder que lo llenó pertenece a esa Red o sus células
-                (x.Event != null && !x.Event.OrganizationStructureId.HasValue && _context.OrganizationMembers.Any(om => om.MemberId == x.LeaderId && structureIds.Contains(om.OrganizationStructureId)))
+                (x.Event != null && x.Event.OrganizationStructureId.HasValue && filterStructureIds.Contains(x.Event.OrganizationStructureId.Value)) ||
+                (x.Event != null && !x.Event.OrganizationStructureId.HasValue && validLeaderIds.Contains(x.LeaderId))
             );
         }
 
@@ -150,7 +192,6 @@ public class ReportRepository
         var groupedByWeek = rawData.GroupBy(row => 
         {
             var regDate = row.RegistryDate.ToLocalTime();
-            // Determinamos el Lunes de esa semana
             int diff = (7 + (regDate.DayOfWeek - DayOfWeek.Monday)) % 7;
             var startOfWeek = regDate.Date.AddDays(-1 * diff);
             var endOfWeek = startOfWeek.AddDays(6);
@@ -211,27 +252,20 @@ public class ReportRepository
                 resultData.Add(flatRow);
             }
 
-            // 🔥 FILA DE SUBTOTAL PARA ESTA SEMANA
+            // 🔥 FILA DE SUBTOTAL SEMANAL
             var subtotalRow = new Dictionary<string, object>();
             subtotalRow["Semana"] = $"SUBTOTAL {weekTag}";
 
             foreach (var colKey in request.SelectedColumns)
             {
                 string headerLabel = labelMap.TryGetValue(colKey, out var lbl) ? lbl : colKey;
-                
-                if (numericColumns.Contains(headerLabel))
-                {
-                    subtotalRow[headerLabel] = weekTotals.GetValueOrDefault(headerLabel, 0);
-                }
-                else
-                {
-                    subtotalRow[headerLabel] = ""; // Limpiamos textos en la fila de sumatoria
-                }
+                if (numericColumns.Contains(headerLabel)) subtotalRow[headerLabel] = weekTotals.GetValueOrDefault(headerLabel, 0);
+                else subtotalRow[headerLabel] = "";
             }
             resultData.Add(subtotalRow);
         }
 
-        // 5. FILA DE TOTAL GENERAL (Sumatoria de toda la consulta)
+        // 5. FILA DE TOTAL GENERAL
         if (resultData.Count > 0)
         {
             var grandTotalRow = new Dictionary<string, object>();
@@ -246,18 +280,12 @@ public class ReportRepository
                     decimal gTotal = 0;
                     foreach (var row in resultData)
                     {
-                        // Sumamos solo las filas de subtotal para no duplicar datos
                         if (row["Semana"].ToString()!.StartsWith("SUBTOTAL") && row.TryGetValue(headerLabel, out var val) && val is decimal dVal)
-                        {
                             gTotal += dVal;
-                        }
                     }
                     grandTotalRow[headerLabel] = gTotal;
                 }
-                else
-                {
-                    grandTotalRow[headerLabel] = "";
-                }
+                else grandTotalRow[headerLabel] = "";
             }
             resultData.Add(grandTotalRow);
         }

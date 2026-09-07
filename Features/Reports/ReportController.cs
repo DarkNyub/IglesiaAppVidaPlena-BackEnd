@@ -1,5 +1,6 @@
 ﻿using IglesiaBackend.Features.Reports.Dtos;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 
@@ -76,7 +77,12 @@ public class ReportController : ControllerBase
 
         try
         {
-            var data = await _service.GenerateFlatReportAsync(request);
+            // 🔥 INTERCEPTAMOS LA IDENTIDAD DEL USUARIO
+            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            var memberIdClaim = User.Claims.FirstOrDefault(c => c.Type == "MemberId")?.Value;
+            int? currentMemberId = string.IsNullOrEmpty(memberIdClaim) ? null : int.Parse(memberIdClaim);
+
+            var data = await _service.GenerateFlatReportAsync(request, userRole, currentMemberId);
             return Ok(data);
         }
         catch (Exception ex)

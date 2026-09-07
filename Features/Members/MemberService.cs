@@ -3,6 +3,7 @@ using System.Text.Json.Nodes; // <--- NECESARIO
 using IglesiaBackend.Features.OrganizationStructures;
 using System.Security.Claims;
 
+
 namespace IglesiaBackend.Features.Members;
 
 public class MemberService
@@ -33,13 +34,19 @@ public class MemberService
 
         return await _orgRepository.GetDescendingStructureIdsAsync(memberId);
     }
-
-    public async Task<List<MemberDto>> GetAllAsync()
+    // Reemplaza tu GetAllAsync actual por este:
+    public async Task<List<MemberDto>> GetAllAsync(string userRole, int? currentMemberId)
     {
-        var allowedIds = await GetAllowedStructureIdsAsync();
-        var members = await _repository.GetAllAsync(allowedIds);
-        return members.Select(MemberMapper.ToDto).ToList();
+        var entities = await _repository.GetAllAsync(userRole, currentMemberId);
+        return entities.Select(MemberMapper.ToDto).ToList();
     }
+
+    // public async Task<List<MemberDto>> GetAllAsync()//old
+    // {
+    //     // var allowedIds = await GetAllowedStructureIdsAsync();
+    //     // var members = await _repository.GetAllAsync(allowedIds);
+    //     // return members.Select(MemberMapper.ToDto).ToList();
+    // }
 
     public async Task<MemberDto?> GetByIdAsync(int id)
     {

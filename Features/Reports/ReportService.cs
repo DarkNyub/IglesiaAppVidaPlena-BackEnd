@@ -63,8 +63,8 @@ public class ReportService
         return await _repository.GetAvailableColumnsAsync(recordTypeId);
     }
 
-    public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request)
+    public async Task<List<Dictionary<string, object>>> GenerateFlatReportAsync(DynamicReportRequestDto request, string userRole, int? currentMemberId)
     {
-        return await _repository.GenerateFlatReportAsync(request);
+        return await _repository.GenerateFlatReportAsync(request, userRole, currentMemberId);
     }
 }

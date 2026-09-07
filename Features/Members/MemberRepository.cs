@@ -12,8 +12,11 @@ public class MemberRepository
     {
         _context = context;
     }
-
-    public async Task<List<Member>> GetAllAsync(List<int>? allowedStructureIds = null)
+    
+    // =========================================================
+    // GET ALL CON SEGURIDAD JERÁRQUICA (ROW-LEVEL SECURITY)
+    // =========================================================
+    public async Task<List<Member>> GetAllAsync(string userRole, int? currentMemberId)
     {
         var query = _context.Members
             .IgnoreQueryFilters() 
@@ -26,11 +29,56 @@ public class MemberRepository
                 .ThenInclude(om => om.ChurchFunctionRole)    
             .AsQueryable();
 
-        // 🔥 FILTRO MÁGICO DE AISLAMIENTO 🔥
-        if (allowedStructureIds != null)
+        var normalizedRole = userRole.ToUpper();
+        bool isSuperAdmin = normalizedRole == "SUPERADMIN" || normalizedRole == "ADMIN";
+
+        // Si NO es SuperAdmin, aplicamos el filtro jerárquico
+        if (!isSuperAdmin && currentMemberId.HasValue)
         {
-            query = query.Where(m => m.OrganizationMemberships
-                .Any(om => allowedStructureIds.Contains(om.OrganizationStructureId)));
+            // 1. Obtener las estructuras directas del usuario logueado
+            var userStructures = await _context.OrganizationMembers
+                .Where(om => om.MemberId == currentMemberId.Value)
+                .Select(om => om.OrganizationStructureId)
+                .ToListAsync();
+
+            List<int> allowedStructureIds = new List<int>(userStructures);
+            var allStructs = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
+
+            // 2. Función recursiva para mapear todo el ramaje hacia abajo (Células hijas)
+            void GetChildrenStructures(int parentId)
+            {
+                var children = allStructs.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
+                foreach (var child in children)
+                {
+                    if (!allowedStructureIds.Contains(child))
+                    {
+                        allowedStructureIds.Add(child);
+                        GetChildrenStructures(child);
+                    }
+                }
+            }
+
+            // Alimentamos el árbol con las redes del líder
+            foreach (var us in userStructures)
+            {
+                GetChildrenStructures(us);
+            }
+
+            // 3. Aplicamos el filtro a la consulta SQL
+            if (!allowedStructureIds.Any())
+            {
+                // Si el usuario no tiene ninguna red asignada, solo puede verse a sí mismo
+                query = query.Where(m => m.Id == currentMemberId.Value);
+            }
+            else
+            {
+                // Solo trae a los miembros que tengan un cargo en las redes permitidas, 
+                // o al propio usuario logueado.
+                query = query.Where(m => 
+                    m.Id == currentMemberId.Value || 
+                    m.OrganizationMemberships.Any(om => allowedStructureIds.Contains(om.OrganizationStructureId))
+                );
+            }
         }
 
         return await query.ToListAsync();
