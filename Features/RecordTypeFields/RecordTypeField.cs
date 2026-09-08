@@ -44,6 +44,17 @@ public class RecordTypeField : AuditableEntity
     /// </summary>
     [MaxLength(50)]
     public string? MemberSelectionLogic { get; set; } // <--- NUEVO
+    
+    /// <summary>
+    /// Indica si el campo es de solo lectura calculado por el sistema.
+    /// </summary>
+    public bool IsFormula { get; set; } = false;
+
+    /// <summary>
+    /// La ecuación matemática literal. Ej: "[nave_derecha] + [nave_central]"
+    /// </summary>
+    [MaxLength(255)]
+    public string? FormulaExpression { get; set; }
 
     /// <summary>
     /// indica si el campo es obligatorio

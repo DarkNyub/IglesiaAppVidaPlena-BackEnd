@@ -13,6 +13,8 @@ public class RecordTypeFieldDto
     public string Label { get; set; } = string.Empty;
     public string DataType { get; set; } = string.Empty;
     public string? MemberSelectionLogic { get; set; } // <--- NUEVO
+    public bool IsFormula { get; set; } = false;
+    public string? FormulaExpression { get; set; }
     public bool IsRequired { get; set; }
     public int FieldOrder { get; set; }
     // 🔥 AGREGAR PARA VISIBILIDAD
@@ -41,6 +43,8 @@ public class RecordTypeFieldCreateUpdateDto
 
     [MaxLength(50)]
     public string? MemberSelectionLogic { get; set; } // <--- NUEVO
+    public bool IsFormula { get; set; } = false;
+    public string? FormulaExpression { get; set; }
 
     public bool IsRequired { get; set; } = false;
 

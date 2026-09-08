@@ -6,7 +6,7 @@ public class RecordTypeFieldService
 
     // AGREGAMOS "member_selection" A LA LISTA BLANCA
     private static readonly string[] AllowedDataTypes =
-        { "string", "int", "decimal", "bool", "date", "image_gallery", "member_selection" };
+        { "string", "int", "decimal", "bool", "date", "image_gallery", "member_selection", "formula" };
 
     public RecordTypeFieldService(RecordTypeFieldRepository repository)
     {

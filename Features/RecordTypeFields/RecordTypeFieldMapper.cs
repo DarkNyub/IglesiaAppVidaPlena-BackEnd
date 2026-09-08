@@ -13,6 +13,8 @@ public static class RecordTypeFieldMapper
             DataType = entity.DataType,
             MemberSelectionLogic = entity.MemberSelectionLogic, // <--- NUEVO
             IsRequired = entity.IsRequired,
+            IsFormula = entity.IsFormula,
+            FormulaExpression = entity.FormulaExpression,
             FieldOrder = entity.FieldOrder,
             IsDeleted = entity.IsDeleted // 🔥 MAPEARLO
         };
@@ -27,6 +29,8 @@ public static class RecordTypeFieldMapper
         entity.Label = dto.Label;
         entity.DataType = dto.DataType;
         entity.MemberSelectionLogic = dto.MemberSelectionLogic; // <--- NUEVO
+        entity.IsFormula = dto.IsFormula;
+        entity.FormulaExpression = dto.FormulaExpression;
         entity.IsRequired = dto.IsRequired;
         entity.FieldOrder = dto.FieldOrder;
     }
