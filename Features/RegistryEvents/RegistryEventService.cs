@@ -45,9 +45,14 @@ public class RegistryEventService
         return int.Parse(memberIdClaim);
     }
 
+    // Extraemos la información de forma segura por si un SuperAdmin no tiene perfil de miembro
     public async Task<List<RegistryEventDto>> GetAllAsync()
     {
-        var entities = await _repository.GetAllAsync();
+        var userRole = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        var memberIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("memberId")?.Value;
+        int? currentMemberId = string.IsNullOrEmpty(memberIdClaim) ? null : int.Parse(memberIdClaim);
+
+        var entities = await _repository.GetAllAsync(userRole, currentMemberId);
         return entities.Select(RegistryEventMapper.ToDto).ToList();
     }
 
