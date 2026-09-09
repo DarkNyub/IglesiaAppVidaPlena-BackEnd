@@ -19,12 +19,12 @@ public class MemberController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        // 🔥 1. INTERCEPTAMOS LA IDENTIDAD DESDE EL TOKEN JWT
         var userRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "";
-        var memberIdClaim = User.Claims.FirstOrDefault(c => c.Type == "MemberId")?.Value;
+        
+        // 🔥 CORRECCIÓN: Buscamos ambos casos para evitar el error de sensibilidad
+        var memberIdClaim = User.Claims.FirstOrDefault(c => c.Type == "memberId" || c.Type == "MemberId")?.Value;
         int? currentMemberId = string.IsNullOrEmpty(memberIdClaim) ? null : int.Parse(memberIdClaim);
 
-        // 2. Pasamos la identidad al servicio
         var members = await _service.GetAllAsync(userRole, currentMemberId);
         return Ok(members);
     }

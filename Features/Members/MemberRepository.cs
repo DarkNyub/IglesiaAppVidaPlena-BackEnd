@@ -32,9 +32,15 @@ public class MemberRepository
         var normalizedRole = userRole.ToUpper();
         bool isSuperAdmin = normalizedRole == "SUPERADMIN" || normalizedRole == "ADMIN";
 
-        // Si NO es SuperAdmin, aplicamos el filtro jerárquico
-        if (!isSuperAdmin && currentMemberId.HasValue)
+        // 🔥 FAIL-SECURE: Si NO es SuperAdmin, debe pasar por el filtro estricto
+        if (!isSuperAdmin)
         {
+            // Si por algún error el token no tiene ID, bloqueamos todo el acceso
+            if (!currentMemberId.HasValue) 
+            {
+                return new List<Member>(); 
+            }
+
             // 1. Obtener las estructuras directas del usuario logueado
             var userStructures = await _context.OrganizationMembers
                 .Where(om => om.MemberId == currentMemberId.Value)
@@ -44,7 +50,7 @@ public class MemberRepository
             List<int> allowedStructureIds = new List<int>(userStructures);
             var allStructs = await _context.OrganizationStructures.AsNoTracking().ToListAsync();
 
-            // 2. Función recursiva para mapear todo el ramaje hacia abajo (Células hijas)
+            // 2. Función recursiva para mapear todo el ramaje hacia abajo
             void GetChildrenStructures(int parentId)
             {
                 var children = allStructs.Where(s => s.ParentId == parentId).Select(s => s.Id).ToList();
@@ -58,7 +64,6 @@ public class MemberRepository
                 }
             }
 
-            // Alimentamos el árbol con las redes del líder
             foreach (var us in userStructures)
             {
                 GetChildrenStructures(us);
@@ -67,13 +72,12 @@ public class MemberRepository
             // 3. Aplicamos el filtro a la consulta SQL
             if (!allowedStructureIds.Any())
             {
-                // Si el usuario no tiene ninguna red asignada, solo puede verse a sí mismo
+                // Solo se ve a sí mismo
                 query = query.Where(m => m.Id == currentMemberId.Value);
             }
             else
             {
-                // Solo trae a los miembros que tengan un cargo en las redes permitidas, 
-                // o al propio usuario logueado.
+                // Ve a su red hacia abajo O a sí mismo
                 query = query.Where(m => 
                     m.Id == currentMemberId.Value || 
                     m.OrganizationMemberships.Any(om => allowedStructureIds.Contains(om.OrganizationStructureId))
