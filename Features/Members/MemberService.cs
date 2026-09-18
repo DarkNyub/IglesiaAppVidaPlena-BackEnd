@@ -2,6 +2,7 @@
 using System.Text.Json.Nodes; // <--- NECESARIO
 using IglesiaBackend.Features.OrganizationStructures;
 using System.Security.Claims;
+using IglesiaBackend.Features.Shared.Services;
 
 
 namespace IglesiaBackend.Features.Members;
@@ -11,12 +12,15 @@ public class MemberService
     private readonly MemberRepository _repository;
     private readonly OrganizationStructureRepository _orgRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly GitHubStorageService _gitHubStorage; // 🔥 NUEVO
 
-    public MemberService(MemberRepository repository, OrganizationStructureRepository orgRepository, IHttpContextAccessor httpContextAccessor)
+    public MemberService(MemberRepository repository, OrganizationStructureRepository orgRepository, IHttpContextAccessor httpContextAccessor,
+        GitHubStorageService gitHubStorage)
     {
         _repository = repository;
         _orgRepository = orgRepository;
         _httpContextAccessor = httpContextAccessor;
+        _gitHubStorage = gitHubStorage;
     }
 
     private async Task<List<int>?> GetAllowedStructureIdsAsync()
@@ -58,6 +62,11 @@ public class MemberService
     {
         // 1. Convertimos el DTO a Entidad (Datos básicos)
         var entity = MemberMapper.ToEntity(dto);
+        // 🔥 PROCESAR IMAGEN ANTES DE GUARDAR
+        if (!string.IsNullOrEmpty(dto.PhotoBase64))
+        {
+            entity.PhotoUrl = await _gitHubStorage.UploadImageAsync(dto.PhotoBase64, "members", "photo.jpg");
+        }
 
         // 2. CORRECCIÓN: Pasamos la entidad Y la lista de roles al repositorio
         // El repositorio se encargará de guardar el miembro y luego sus relaciones
@@ -73,6 +82,11 @@ public class MemberService
 
         // 1. Actualizamos los datos básicos en la entidad
         MemberMapper.UpdateEntity(entity, dto);
+        // 🔥 PROCESAR IMAGEN ANTES DE GUARDAR
+        if (!string.IsNullOrEmpty(dto.PhotoBase64))
+        {
+            entity.PhotoUrl = await _gitHubStorage.UploadImageAsync(dto.PhotoBase64, "members", "photo.jpg");
+        }
 
         // 2. CORRECCIÓN: Pasamos la entidad Y la nueva lista de roles
         // El repositorio borrará los roles viejos y pondrá los nuevos

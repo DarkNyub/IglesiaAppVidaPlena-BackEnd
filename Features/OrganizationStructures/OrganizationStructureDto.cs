@@ -5,6 +5,7 @@ public record OrganizationStructureDto
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? PhotoUrl { get; set; }
 
     // 🔥 VITAL: Para el Soft Delete visual
     public bool IsDeleted { get; set; }
@@ -22,6 +23,7 @@ public class OrganizationStructureCreateUpdateDto
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? PhotoBase64 { get; set; }
 
     // ¿Qué es? (ID del OrganizationType)
     public int OrganizationTypeId { get; set; }

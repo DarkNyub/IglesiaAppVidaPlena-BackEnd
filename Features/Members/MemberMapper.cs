@@ -17,6 +17,7 @@ public static class MemberMapper
             Email = entity.Email,
             Address = entity.Address,
             BirthDate = entity.BirthDate,
+            PhotoUrl = entity.PhotoUrl,
 
             // JSONB directo (Entity -> DTO)
             ExtraData = entity.ExtraData,

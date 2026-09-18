@@ -13,6 +13,7 @@ public record MemberDto
     public string? Email { get; set; }
     public string? Address { get; set; }
     public DateTime? BirthDate { get; set; }
+    public string? PhotoUrl { get; set; }
     public JsonDocument? ExtraData { get; set; }
 
     // --- AUDITORÍA Y ESTADO (Heredados de AuditableEntity) ---
@@ -61,6 +62,7 @@ public class MemberCreateUpdateDto
     public string? Email { get; set; }
     public string? Address { get; set; }
     public DateTime? BirthDate { get; set; }
+    public string? PhotoBase64 { get; set; }
     // CAMBIO: Opcional, usualmente al crear es false, pero al editar podemos querer reactivarlo (IsDeleted = false)
     //public bool IsDeleted { get; set; } = false;
     public JsonDocument? ExtraData { get; set; }

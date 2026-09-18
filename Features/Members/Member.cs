@@ -35,6 +35,7 @@ public class Member : AuditableEntity
     public string? Address { get; set; }
 
     public DateTime? BirthDate { get; set; }
+    public string? PhotoUrl { get; set; }
 
     /// <summary>JSON optional for extra data (baptism, discipleship, etc.)</summary>// Propiedad mapeada a JSONB
     // Usamos JsonDocument porque la estructura es variable (pueden ser libros, bautizos, etc.)

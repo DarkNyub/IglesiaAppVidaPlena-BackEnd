@@ -26,6 +26,7 @@ namespace IglesiaBackend.Features.OrganizationStructures
 
         // --- CLASIFICACIÓN ---
         public int OrganizationTypeId { get; set; }
+        public string? PhotoUrl { get; set; }
 
         [ForeignKey(nameof(OrganizationTypeId))]
         public OrganizationType? OrganizationType { get; set; }

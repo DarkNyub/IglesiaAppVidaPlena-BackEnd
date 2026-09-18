@@ -9,6 +9,7 @@ public static class OrganizationStructureMapper
             Id = entity.Id,
             Name = entity.Name,
             Description = entity.Description,
+            PhotoUrl = entity.PhotoUrl,
             IsDeleted = entity.IsDeleted,
 
             OrganizationTypeId = entity.OrganizationTypeId,

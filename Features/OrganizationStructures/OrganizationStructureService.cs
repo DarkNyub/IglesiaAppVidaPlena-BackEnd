@@ -1,12 +1,16 @@
 ﻿namespace IglesiaBackend.Features.OrganizationStructures;
+using IglesiaBackend.Features.Shared.Services;
 
 public class OrganizationStructureService
 {
     private readonly OrganizationStructureRepository _repository;
+    private readonly GitHubStorageService _gitHubStorage;
 
-    public OrganizationStructureService(OrganizationStructureRepository repository)
+    public OrganizationStructureService(OrganizationStructureRepository repository,
+        GitHubStorageService gitHubStorage)
     {
         _repository = repository;
+        _gitHubStorage = gitHubStorage;
     }
 
     public async Task<List<OrganizationStructureDto>> GetAllAsync()
@@ -33,6 +37,11 @@ public class OrganizationStructureService
         if (dto.ParentId.HasValue && dto.ParentId.Value <= 0) dto.ParentId = null;
 
         var entity = OrganizationStructureMapper.ToEntity(dto);
+        // 🔥 PROCESAR IMAGEN
+        if (!string.IsNullOrEmpty(dto.PhotoBase64))
+        {
+            entity.PhotoUrl = await _gitHubStorage.UploadImageAsync(dto.PhotoBase64, "structures", "photo.jpg");
+        }
         await _repository.CreateAsync(entity);
 
         return OrganizationStructureMapper.ToDto(entity);
@@ -50,6 +59,11 @@ public class OrganizationStructureService
         }
 
         OrganizationStructureMapper.UpdateEntity(entity, dto);
+        // 🔥 PROCESAR IMAGEN
+        if (!string.IsNullOrEmpty(dto.PhotoBase64))
+        {
+            entity.PhotoUrl = await _gitHubStorage.UploadImageAsync(dto.PhotoBase64, "structures", "photo.jpg");
+        }
         await _repository.UpdateAsync(entity);
 
         return true;
