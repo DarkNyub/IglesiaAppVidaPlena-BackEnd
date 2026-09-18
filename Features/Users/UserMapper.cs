@@ -12,10 +12,11 @@ public static class UserMapper
             Id = entity.Id,
             Username = entity.Username,
             MemberId = entity.MemberId,
+            
             MemberFullName = entity.Member != null
                 ? $"{entity.Member.FirstName} {entity.Member.LastName}"
                 : "Desconocido",
-
+            MemberPhotoUrl = entity.Member?.PhotoUrl, // <--- AQUÍ
             // --- AUDITORÍA Y ESTADO ---
             IsActive = entity.IsActive,
             IsDeleted = entity.IsDeleted,

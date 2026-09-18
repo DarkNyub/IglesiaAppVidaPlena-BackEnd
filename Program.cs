@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models; // Agregado para OpenApi models explícitos
 using System.Text;
+using IglesiaBackend.Features.Shared.Services;
 
 //Si te mando una fecha sin zona horaria, no te quejes y guárdala como si fuera UTC
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -25,7 +26,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // =======================================
 // Aquí se cargan todos tus nuevos repositorios y servicios (Organization, etc.)
 builder.Services.AddFeatureServices();
-
+builder.Services.AddHttpClient<GitHubStorageService>();
 // =======================================
 // Scrutor (opcional, no estorba)
 // =======================================

@@ -134,7 +134,11 @@ public class UserService
             UserId = user.Id,
             MemberId = user.MemberId,
             Username = user.Username,
-            SystemRole = systemRole?.Name ?? string.Empty
+            SystemRole = systemRole?.Name ?? string.Empty,
+            // 🔥 EXTRAEMOS LA INFO DEL MIEMBRO (Si existe)
+            FirstName = user.Member?.FirstName ?? "",
+            LastName = user.Member?.LastName ?? "",
+            PhotoUrl = user.Member?.PhotoUrl
         };
     }
     // 🔥 NUEVO: Toggle exclusivo para IsActive

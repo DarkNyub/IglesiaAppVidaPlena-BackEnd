@@ -9,6 +9,7 @@ public class UserDto
 
     public int MemberId { get; set; }
     public string MemberFullName { get; set; } = string.Empty;
+    public string? MemberPhotoUrl { get; set; }
 
     // --- ESTADO Y AUDITORÍA ---
     public bool IsActive { get; set; } // ¿Puede loguearse?

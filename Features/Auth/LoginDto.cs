@@ -29,4 +29,8 @@ public class LoginResultDto
     public int MemberId { get; set; }
     public string Username { get; set; } = string.Empty;
     public string SystemRole { get; set; } = string.Empty;
+    // 🔥 NUEVOS CAMPOS AÑADIDOS
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? PhotoUrl { get; set; }
 }
