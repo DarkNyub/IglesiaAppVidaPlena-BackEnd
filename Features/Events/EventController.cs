@@ -67,4 +67,21 @@ public class EventController : ControllerBase
         if (!success) return NotFound();
         return NoContent();
     }
+    // 🔥 EL ENDPOINT QUE FLUTTER LLAMA PARA ARMAR EL BOTTOM SHEET O EL FORMULARIO DIRECTO
+    [HttpGet("{id:int}/structure")]
+    public async Task<IActionResult> GetEventStructure(int id)
+    {
+        // Extraemos quién es el que está consultando
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        var memberIdClaim = User.FindFirst("memberId")?.Value;
+        int? memberId = string.IsNullOrEmpty(memberIdClaim) ? null : int.Parse(memberIdClaim);
+
+        var structures = await _service.GetEventFormStructuresAsync(id, userRole, memberId);
+        
+        if (structures == null) 
+            return NotFound(new { message = "No tienes formularios asignados para este evento según tus roles actuales." });
+
+        // Retorna la LISTA de formularios permitidos
+        return Ok(structures);
+    }
 }

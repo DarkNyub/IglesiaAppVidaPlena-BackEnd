@@ -141,4 +141,23 @@ public class EventService
         await _repository.UpdateSimpleAsync(entity);
         return true;
     }
+    // 🔥 NUEVO MÉTODO PARA DEVOLVER LA ESTRUCTURA AL FRONTEND
+    public async Task<object?> GetEventFormStructuresAsync(int eventId, string userRole, int? memberId)
+    {
+        bool isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) || 
+                            userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
+        var allowedRecordTypes = await _repository.GetAllowedRecordTypesForEventAsync(eventId, memberId, isSuperAdmin);
+
+        if (!allowedRecordTypes.Any()) return null;
+
+        // Mapeamos el resultado a una lista anónima idéntica a lo que Flutter espera
+        return allowedRecordTypes.Select(rt => new
+        {
+            recordTypeId = rt.Id,
+            formName = rt.Name,
+            formDescription = rt.Description,
+            fields = rt.Fields // Se asume que Fields es el JsonDocument en tu BD
+        }).ToList();
+    }
 }

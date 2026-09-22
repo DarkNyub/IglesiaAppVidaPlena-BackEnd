@@ -116,4 +116,47 @@ public class EventRepository
         _context.Events.Update(entity);
         await _context.SaveChangesAsync();
     }
+    // 🔥 NUEVO MÉTODO PARA FILTRAR FORMULARIOS SEGÚN EL ROL DEL USUARIO
+    public async Task<List<IglesiaBackend.Features.RecordTypes.RecordType>> GetAllowedRecordTypesForEventAsync(int eventId, int? memberId, bool isSuperAdmin)
+    {
+        // 1. Traemos los formularios activos atados a este evento
+        var query = _context.EventRecordTypes
+            .Include(ert => ert.RecordType)
+            .Where(ert => ert.EventId == eventId && !ert.IsDeleted && !ert.RecordType.IsDeleted)
+            .Select(ert => ert.RecordType);
+
+        // Si es Admin, los ve todos
+        if (isSuperAdmin) return await query.ToListAsync();
+
+        if (!memberId.HasValue) return new List<IglesiaBackend.Features.RecordTypes.RecordType>();
+
+        // 2. Buscamos TODOS los sombreros (cargos) activos que tiene el líder
+        var userMemberships = await _context.OrganizationMembers
+            .Include(om => om.OrganizationStructure)
+            .Where(om => om.MemberId == memberId.Value && om.IsActive && !om.IsDeleted)
+            .ToListAsync();
+
+        var userRoleIds = userMemberships.Select(om => om.ChurchFunctionRoleId).Distinct().ToList();
+        var userOrgTypeIds = userMemberships
+            .Where(om => om.OrganizationStructure != null)
+            .Select(om => om.OrganizationStructure.OrganizationTypeId)
+            .Distinct().ToList();
+
+        var allEventRecordTypes = await query.ToListAsync();
+        var allowedRecordTypes = new List<IglesiaBackend.Features.RecordTypes.RecordType>();
+
+        // 3. Evaluamos uno por uno si el líder tiene permiso para llenarlo
+        foreach(var rt in allEventRecordTypes)
+        {
+            bool roleMatch = rt.TargetFunctionRoleId == null || userRoleIds.Contains(rt.TargetFunctionRoleId.Value);
+            bool orgTypeMatch = rt.TargetOrganizationTypeId == null || userOrgTypeIds.Contains(rt.TargetOrganizationTypeId.Value);
+
+            if (roleMatch && orgTypeMatch)
+            {
+                allowedRecordTypes.Add(rt);
+            }
+        }
+
+        return allowedRecordTypes;
+    }
 }
