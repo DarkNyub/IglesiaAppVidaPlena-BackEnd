@@ -9,6 +9,7 @@ using IglesiaBackend.Features.RecordTypeFields;
 using IglesiaBackend.Features.RecordTypes;
 using IglesiaBackend.Features.RegistryEvents;
 using IglesiaBackend.Features.Reports;
+using IglesiaBackend.Features.Settings; // <--- Nuevo
 using IglesiaBackend.Features.SystemRoles;
 using IglesiaBackend.Features.Users;
 using IglesiaBackend.Features.UserSystemRoles;
@@ -55,6 +56,8 @@ public class AppDbContext : DbContext
     // --- DATA ---
     public DbSet<RegistryEvent> RegistryEvents { get; set; }
     public DbSet<Report> Reports { get; set; }
+
+    public DbSet<SystemSetting> SystemSettings { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
